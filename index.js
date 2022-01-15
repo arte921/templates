@@ -3,7 +3,12 @@ const leesJSON = require('./functies/leesJSON.js');
 
 const { leesMap } = require('./functies/leesMap.js');
 const path = require("path");
-const invertedSwitch = require('./functies/invertedSwitch.js');
+
+String.prototype.Eh = function() {
+    return this.charAt(0).toUpperCase() + this.slice(1);
+};
+
+String.prototype.AH = String.prototype.toUpperCase;
 
 (async () => {
     const projecten = (await leesMap("./generators")).paden;
@@ -13,7 +18,9 @@ const invertedSwitch = require('./functies/invertedSwitch.js');
         const generatorPaden = project.paden.filter((pad) => path.basename(pad).endsWith(".js")).map(pad => "./" + pad);
 
         const api = await leesJSON(itemsPad);
-        const items = api.items;
+
+        const items = Symbol.iterator in Object(api) ? api.reduce((items, item) => ({ ...items, [item]: item }), {}) : api;
+
         const generators = generatorPaden.map(pad => ({
             generator: require(pad),
             naam: path.basename(pad).slice(0, -3)
@@ -21,46 +28,12 @@ const invertedSwitch = require('./functies/invertedSwitch.js');
 
         for (const generator of generators) {
             const alleItems = [];
-            for (const item of items) {
-                try {
-                    const code = generator.generator;
+            for (const [naam, item] of Object.entries(items)) {
+                const code = generator.generator(naam, item, items);
 
-                    const argumenten = code
-                        .toString()
-                        .match(/^\(((.|\n)*)\)/)[1]
-                        .split(",")
-                        .map(argument => argument.trim())
-                        .map(argument => invertedSwitch([
-                            [
-                                argument => argument.match(/([a-zA-Z]+) ?= ?"([a-z]+)"/),
-                                (_, match) => {
-                                    const naam = match[1];
-                                    const operator = match[2];
-                                    return invertedSwitch([
-                                        ["lookup", item[naam]]
-                                    ], operator)
-                                }
-                            ],
-                            ["items", items],
-                            ["item", item],
-                            [
-                                
-                            ]
-                        ], argument))
+                await writeTXT(path.join("./code", project.naam, generator.naam), naam, code);
 
-
-
-                    console.log(argumenten);
-
-                    if (item.naam) {
-                        await writeTXT(path.join("./code", project.naam, generator.naam), item.naam[0], code);
-                    }
-
-                    alleItems.push(code);
-
-                } catch (e) {
-                    console.log(e);
-                };
+                alleItems.push(code);
             }
             await writeTXT(path.join("./code", project.naam, generator.naam), "alles", alleItems.join("\n"));
         }

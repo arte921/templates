@@ -1,10 +1,4 @@
-const vds = callback => (...argument) => callback(vds(callback))(...argument);
-
-vds(zelf => (i, f = 1, v = 0) => {
-    console.log(i, f);
-    if (i != 0) zelf(i - 1, f + v, f);
-})(10);
-
+const vds = require('./vds');
 
 const invertedSwitch = (switches, waarde) => {
     for (const [test, succes] of switches) {
@@ -16,11 +10,11 @@ const invertedSwitch = (switches, waarde) => {
             [test == waarde]
         ]);
         
-        if (testResultaat) return invertedSwitch([
-            [!succes, test],
+        if (testResultaat) return vds(succesToepasser => succes => invertedSwitch([
+            [!succes, succesToepasser(test)],
             [succes instanceof Function, succes(waarde, testResultaat)],
             [succes]
-        ]);
+        ]))(succes);
     }
 };
 
