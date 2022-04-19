@@ -4,11 +4,30 @@ const leesJSON = require('./functies/leesJSON.js');
 const { leesMap } = require('./functies/leesMap.js');
 const path = require("path");
 
-String.prototype.Eh = function() {
-    return this.charAt(0).toUpperCase() + this.slice(1);
-};
+// E van Eerste teken uppercase
+Object.defineProperty(String.prototype, "e", {
+    get: function () {
+        return this.charAt(0).toUpperCase() + this.slice(1);
+    }
+});
 
-String.prototype.AH = String.prototype.toUpperCase;
+// A van Alle tekens uppercase
+Object.defineProperty(String.prototype, "a", {
+    get: function () {
+        return this.toUpperCase();
+    }
+});
+
+['e', 'a'].forEach(l => Object.defineProperty(Array.prototype, l, {
+    get: function () {
+        return this.map(e => e[l]);
+    }
+}));
+
+// J van Join
+Array.prototype.j = function (sep = ", ", nl = " en ") {
+    return this.length > 1 ? this.slice(0, -1).join(sep) + nl + this[this.length - 1] : this[0];
+};
 
 (async () => {
     const projecten = (await leesMap("./generators")).paden;
